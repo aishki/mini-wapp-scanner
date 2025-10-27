@@ -46,7 +46,11 @@ export class WebCrawler {
 
   async crawl(): Promise<CrawlResult> {
     const browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1280, height: 720 },
+    });
     const page = await context.newPage();
 
     await this.crawlPage(page, this.baseUrl, 0);
@@ -67,7 +71,35 @@ export class WebCrawler {
     console.log(`[v0] Crawling: ${url} (depth: ${depth})`);
 
     try {
-      await page.goto(url, { timeout: this.timeout, waitUntil: "networkidle" });
+      await page.goto(url, {
+        timeout: this.timeout,
+        waitUntil: "networkidle",
+      });
+
+      await page.waitForTimeout(2000);
+
+      try {
+        await page
+          .waitForFunction(
+            () => {
+              const ng = (window as any).ng;
+              return (
+                ng &&
+                ng.probe &&
+                ng.probe(document.body)?.injector?.get("$rootScope")
+                  ?.$$phase === null
+              );
+            },
+            { timeout: 3000 }
+          )
+          .catch(() => {
+            // Angular might not be present or already rendered
+            console.log(`[v0] Angular wait timeout for ${url}, continuing...`);
+          });
+      } catch (e) {
+        console.log(`[v0] Angular detection skipped for ${url}`);
+      }
+
       const html = await page.content();
       const root = parse(html);
 
@@ -76,7 +108,7 @@ export class WebCrawler {
       console.log(`[v0] Found ${links.length} links on ${url}`);
       for (const link of links) {
         const href = link.getAttribute("href");
-        if (href && !href.startsWith("#")) {
+        if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
           const absoluteUrl = this.resolveUrl(url, href);
           if (this.isSameDomain(absoluteUrl)) {
             console.log(`[v0] Queuing link: ${absoluteUrl}`);
