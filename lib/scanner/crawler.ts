@@ -1,3 +1,4 @@
+import { chromium } from "playwright";
 import { parse } from "node-html-parser";
 
 export interface CrawlResult {
@@ -44,42 +45,33 @@ export class WebCrawler {
   }
 
   async crawl(): Promise<CrawlResult> {
-    await this.crawlPage(this.baseUrl, 0);
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    await this.crawlPage(page, this.baseUrl, 0);
+
+    await browser.close();
     return this.results;
   }
 
-  private async crawlPage(url: string, depth: number): Promise<void> {
-    if (depth > this.maxDepth || this.visited.has(url)) {
-      return;
-    }
+  private async crawlPage(
+    page: any,
+    url: string,
+    depth: number
+  ): Promise<void> {
+    if (depth > this.maxDepth || this.visited.has(url)) return;
 
     this.visited.add(url);
     this.results.urls.add(url);
     console.log(`[v0] Crawling: ${url} (depth: ${depth})`);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.log(`[v0] Response not OK for ${url}: ${response.status}`);
-        return;
-      }
-
-      const html = await response.text();
+      await page.goto(url, { timeout: this.timeout, waitUntil: "networkidle" });
+      const html = await page.content();
       const root = parse(html);
 
-      // Extract links
+      // Extract links (client-side rendered)
       const links = root.querySelectorAll("a[href]");
       console.log(`[v0] Found ${links.length} links on ${url}`);
       for (const link of links) {
@@ -88,22 +80,18 @@ export class WebCrawler {
           const absoluteUrl = this.resolveUrl(url, href);
           if (this.isSameDomain(absoluteUrl)) {
             console.log(`[v0] Queuing link: ${absoluteUrl}`);
-            await this.crawlPage(absoluteUrl, depth + 1);
+            await this.crawlPage(page, absoluteUrl, depth + 1);
           }
         }
       }
 
-      // Extract forms
+      // Extract forms from rendered DOM
       const forms = root.querySelectorAll("form");
       console.log(`[v0] Found ${forms.length} forms on ${url}`);
       for (const form of forms) {
         const formData = this.extractFormData(url, form);
         this.results.forms.push(formData);
-        console.log(
-          `[v0] Extracted form with ${formData.fields.length} fields`
-        );
 
-        // Extract form parameters
         for (const field of formData.fields) {
           this.results.parameters.push({
             url: formData.url,
@@ -116,9 +104,6 @@ export class WebCrawler {
 
       // Extract URL parameters
       const urlParams = new URL(url).searchParams;
-      console.log(
-        `[v0] Found ${Array.from(urlParams.keys()).length} URL parameters`
-      );
       for (const [key] of urlParams) {
         this.results.parameters.push({
           url,
@@ -127,8 +112,8 @@ export class WebCrawler {
           type: "query",
         });
       }
-    } catch (error) {
-      console.error(`[v0] Error crawling ${url}:`, error);
+    } catch (err) {
+      console.error(`[v0] Error crawling ${url}:`, err);
     }
   }
 
@@ -151,12 +136,7 @@ export class WebCrawler {
       }
     }
 
-    return {
-      url: formUrl,
-      method,
-      action,
-      fields,
-    };
+    return { url: formUrl, method, action, fields };
   }
 
   private resolveUrl(baseUrl: string, relativeUrl: string): string {
