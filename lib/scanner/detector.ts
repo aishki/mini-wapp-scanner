@@ -1,4 +1,4 @@
-import { SQLI_ERROR_PATTERNS, XSS_DETECTION_PATTERNS } from "../payloads";
+import { SQLI_ERROR_PATTERNS, XSS_DETECTION_PATTERNS } from "./payloads";
 
 export interface DetectionResult {
   type: string;
