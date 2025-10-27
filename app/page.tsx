@@ -45,6 +45,9 @@ export default function Home() {
 
     setIsScanning(true);
     try {
+      console.log("[v0] Starting scan request to /api/scan");
+      console.log("[v0] Target URL:", targetUrl);
+
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,9 +58,22 @@ export default function Home() {
         }),
       });
 
+      console.log("[v0] Response status:", response.status);
+      console.log(
+        "[v0] Response headers:",
+        Object.fromEntries(response.headers)
+      );
+
       const data = await response.json();
+      console.log("[v0] Response data:", data);
 
       if (!response.ok) {
+        console.error(
+          "[v0] Scan failed with status",
+          response.status,
+          ":",
+          data.error
+        );
         setError(data.error || "Scan failed");
         return;
       }
@@ -66,6 +82,7 @@ export default function Home() {
       setScanHistory([data, ...scanHistory]);
       setActiveTab("results");
     } catch (error) {
+      console.error("[v0] Network error:", error);
       setError("Network error: " + (error as Error).message);
     } finally {
       setIsScanning(false);

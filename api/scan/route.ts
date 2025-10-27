@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { WebCrawler } from "@/lib/crawler";
-import { PAYLOADS } from "@/lib/payloads";
-import { VulnerabilityDetector } from "@/lib/detector";
-import { RequestInjector } from "@/lib/requester";
+import { WebCrawler } from "@/lib/scanner/crawler";
+import { PAYLOADS } from "@/lib/scanner/payloads";
+import { VulnerabilityDetector } from "@/lib/scanner/detector";
+import { RequestInjector } from "@/lib/scanner/requester";
 
 const scanCache = new Map<string, { timestamp: number; result: any }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -23,53 +23,77 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+function addCORSHeaders(response: NextResponse): NextResponse {
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  response.headers.set("Access-Control-Max-Age", "86400");
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("[v0] POST /api/scan called");
+    console.log("[v0] Request headers:", Object.fromEntries(request.headers));
 
     let body;
     try {
       body = await request.json();
+      console.log("[v0] Request body:", body);
     } catch (parseError) {
       console.error("[v0] JSON parse error:", parseError);
-      return NextResponse.json(
+      const errorResponse = NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 }
       );
+      return addCORSHeaders(errorResponse);
     }
 
     const { targetUrl, depth = 2, timeout = 10000 } = body;
 
     if (!targetUrl) {
-      return NextResponse.json(
+      const errorResponse = NextResponse.json(
         { error: "Target URL required" },
         { status: 400 }
       );
+      return addCORSHeaders(errorResponse);
     }
 
     // Validate URL
     try {
       new URL(targetUrl);
     } catch {
-      return NextResponse.json(
+      const errorResponse = NextResponse.json(
         { error: "Invalid URL format" },
         { status: 400 }
       );
+      return addCORSHeaders(errorResponse);
     }
 
     const clientIp = request.headers.get("x-forwarded-for") || "unknown";
     if (!checkRateLimit(clientIp)) {
-      return NextResponse.json(
+      const errorResponse = NextResponse.json(
         { error: "Rate limit exceeded. Maximum 5 scans per minute." },
         { status: 429 }
       );
+      return addCORSHeaders(errorResponse);
     }
 
     const cacheKey = `${targetUrl}-${depth}`;
     const cached = scanCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       console.log("[v0] Returning cached result for:", targetUrl);
-      return NextResponse.json({ ...cached.result, fromCache: true });
+      const cachedResponse = NextResponse.json({
+        ...cached.result,
+        fromCache: true,
+      });
+      return addCORSHeaders(cachedResponse);
     }
 
     const startTime = Date.now();
@@ -193,25 +217,32 @@ export async function POST(request: NextRequest) {
 
     scanCache.set(cacheKey, { timestamp: Date.now(), result: report });
 
-    return NextResponse.json(report);
+    const successResponse = NextResponse.json(report);
+    return addCORSHeaders(successResponse);
   } catch (error) {
     console.error("[v0] Scan error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { error: `Scan failed: ${errorMessage}` },
       { status: 500 }
     );
+    return addCORSHeaders(errorResponse);
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
+  console.log("[v0] OPTIONS /api/scan called");
+  const response = new NextResponse(null, { status: 200 });
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  response.headers.set("Access-Control-Max-Age", "86400");
+  return response;
 }
