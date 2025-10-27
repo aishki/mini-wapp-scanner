@@ -1,43 +1,49 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, Shield, Zap, FileText, Loader2 } from "lucide-react"
-import ScanDashboard from "@/components/scan-dashboard"
-import ReportViewer from "@/components/report-viewer"
-import ScanHistory from "@/components/scan-history"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertCircle, Shield, Zap, FileText, Loader2 } from "lucide-react";
+import ScanDashboard from "@/components/scan-dashboard";
+import ReportViewer from "@/components/report-viewer";
+import ScanHistory from "@/components/scan-history";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const [targetUrl, setTargetUrl] = useState("")
-  const [crawlDepth, setCrawlDepth] = useState("2")
-  const [timeout, setTimeout] = useState("10000")
-  const [isScanning, setIsScanning] = useState(false)
-  const [scanResults, setScanResults] = useState(null)
-  const [scanHistory, setScanHistory] = useState([])
-  const [error, setError] = useState("")
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [targetUrl, setTargetUrl] = useState("");
+  const [crawlDepth, setCrawlDepth] = useState("2");
+  const [timeout, setTimeout] = useState("10000");
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResults, setScanResults] = useState<any>(null);
+  const [scanHistory, setScanHistory] = useState<any[]>([]);
+  const [error, setError] = useState("");
 
   const handleStartScan = async () => {
-    setError("")
+    setError("");
 
     if (!targetUrl.trim()) {
-      setError("Please enter a target URL")
-      return
+      setError("Please enter a target URL");
+      return;
     }
 
     // Validate URL format
     try {
-      new URL(targetUrl)
+      new URL(targetUrl);
     } catch {
-      setError("Please enter a valid URL (e.g., https://example.com)")
-      return
+      setError("Please enter a valid URL (e.g., https://example.com)");
+      return;
     }
 
-    setIsScanning(true)
+    setIsScanning(true);
     try {
       const response = await fetch("/api/scan", {
         method: "POST",
@@ -47,29 +53,29 @@ export default function Home() {
           depth: Number.parseInt(crawlDepth),
           timeout: Number.parseInt(timeout),
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Scan failed")
-        return
+        setError(data.error || "Scan failed");
+        return;
       }
 
-      setScanResults(data)
-      setScanHistory([data, ...scanHistory])
-      setActiveTab("results")
+      setScanResults(data);
+      setScanHistory([data, ...scanHistory]);
+      setActiveTab("results");
     } catch (error) {
-      setError("Network error: " + (error as Error).message)
+      setError("Network error: " + (error as Error).message);
     } finally {
-      setIsScanning(false)
+      setIsScanning(false);
     }
-  }
+  };
 
   const handleSelectFromHistory = (scan: any) => {
-    setScanResults(scan)
-    setActiveTab("results")
-  }
+    setScanResults(scan);
+    setActiveTab("results");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,8 +88,12 @@ export default function Home() {
                 <Shield className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Web Vulnerability Scanner</h1>
-                <p className="text-sm text-muted-foreground">Professional security testing tool</p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Web Vulnerability Scanner
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Professional security testing tool
+                </p>
               </div>
             </div>
             <div className="text-xs text-muted-foreground bg-card px-3 py-1 rounded-full border border-border">
@@ -98,9 +108,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex gap-3 items-start">
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-red-200">
-            <strong>Legal Notice:</strong> This tool is for authorized security testing only. Only scan systems you own
-            or have explicit written permission to test. Unauthorized access is illegal. Use on intentionally vulnerable
-            apps (OWASP Juice Shop, DVWA) for learning.
+            <strong>Legal Notice:</strong> This tool is for authorized security
+            testing only. Only scan systems you own or have explicit written
+            permission to test. Unauthorized access is illegal. Use on
+            intentionally vulnerable apps (OWASP Juice Shop, DVWA) for learning.
           </div>
         </div>
       </div>
@@ -132,7 +143,9 @@ export default function Home() {
             <Card className="border-border bg-card/50">
               <CardHeader>
                 <CardTitle>Start New Scan</CardTitle>
-                <CardDescription>Enter the target URL to begin vulnerability scanning</CardDescription>
+                <CardDescription>
+                  Enter the target URL to begin vulnerability scanning
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {error && (
@@ -152,7 +165,8 @@ export default function Home() {
                     className="bg-input border-border"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Example: https://juice-shop.herokuapp.com (OWASP Juice Shop for testing)
+                    Example: https://juice-shop.herokuapp.com (OWASP Juice Shop
+                    for testing)
                   </p>
                 </div>
 
@@ -217,7 +231,9 @@ export default function Home() {
             ) : (
               <Card className="border-border bg-card/50">
                 <CardContent className="pt-8 text-center">
-                  <p className="text-muted-foreground">No scan results yet. Start a scan to see results here.</p>
+                  <p className="text-muted-foreground">
+                    No scan results yet. Start a scan to see results here.
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -225,7 +241,10 @@ export default function Home() {
 
           {/* History Tab */}
           <TabsContent value="history">
-            <ScanHistory history={scanHistory} onSelectScan={handleSelectFromHistory} />
+            <ScanHistory
+              history={scanHistory}
+              onSelectScan={handleSelectFromHistory}
+            />
           </TabsContent>
 
           {/* Documentation Tab */}
@@ -233,67 +252,106 @@ export default function Home() {
             <Card className="border-border bg-card/50">
               <CardHeader>
                 <CardTitle>Scanner Documentation</CardTitle>
-                <CardDescription>How to use the vulnerability scanner</CardDescription>
+                <CardDescription>
+                  How to use the vulnerability scanner
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2">Supported Vulnerability Types</h3>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Supported Vulnerability Types
+                  </h3>
                   <ul className="space-y-2 text-muted-foreground">
                     <li>
-                      • <strong>Reflected XSS:</strong> Detects reflected cross-site scripting vulnerabilities
+                      • <strong>Reflected XSS:</strong> Detects reflected
+                      cross-site scripting vulnerabilities
                     </li>
                     <li>
-                      • <strong>DOM-based XSS:</strong> Identifies DOM manipulation patterns that could lead to XSS
+                      • <strong>DOM-based XSS:</strong> Identifies DOM
+                      manipulation patterns that could lead to XSS
                     </li>
                     <li>
-                      • <strong>SQL Injection:</strong> Tests for SQL injection via error-based and boolean-based
-                      detection
+                      • <strong>SQL Injection:</strong> Tests for SQL injection
+                      via error-based and boolean-based detection
                     </li>
                     <li>
-                      • <strong>CSRF:</strong> Identifies missing CSRF tokens in forms
+                      • <strong>CSRF:</strong> Identifies missing CSRF tokens in
+                      forms
                     </li>
                     <li>
-                      • <strong>Open Redirect:</strong> Detects unvalidated redirects
+                      • <strong>Open Redirect:</strong> Detects unvalidated
+                      redirects
                     </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2">Severity Levels</h3>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Severity Levels
+                  </h3>
                   <ul className="space-y-2 text-muted-foreground">
                     <li>
-                      • <span className="severity-critical px-2 py-1 rounded text-xs">Critical</span> - Immediate
-                      exploitation possible
+                      •{" "}
+                      <span className="severity-critical px-2 py-1 rounded text-xs">
+                        Critical
+                      </span>{" "}
+                      - Immediate exploitation possible
                     </li>
                     <li>
-                      • <span className="severity-high px-2 py-1 rounded text-xs">High</span> - Likely exploitable
+                      •{" "}
+                      <span className="severity-high px-2 py-1 rounded text-xs">
+                        High
+                      </span>{" "}
+                      - Likely exploitable
                     </li>
                     <li>
-                      • <span className="severity-medium px-2 py-1 rounded text-xs">Medium</span> - Possible
-                      exploitation
+                      •{" "}
+                      <span className="severity-medium px-2 py-1 rounded text-xs">
+                        Medium
+                      </span>{" "}
+                      - Possible exploitation
                     </li>
                     <li>
-                      • <span className="severity-low px-2 py-1 rounded text-xs">Low</span> - Unlikely to be exploited
+                      •{" "}
+                      <span className="severity-low px-2 py-1 rounded text-xs">
+                        Low
+                      </span>{" "}
+                      - Unlikely to be exploited
                     </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2">Best Practices</h3>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Best Practices
+                  </h3>
                   <ul className="space-y-2 text-muted-foreground">
-                    <li>• Always get written permission before testing any system</li>
-                    <li>• Start with low crawl depth to avoid overwhelming the target</li>
-                    <li>• Use on intentionally vulnerable applications for learning</li>
-                    <li>• Review findings carefully and validate before reporting</li>
+                    <li>
+                      • Always get written permission before testing any system
+                    </li>
+                    <li>
+                      • Start with low crawl depth to avoid overwhelming the
+                      target
+                    </li>
+                    <li>
+                      • Use on intentionally vulnerable applications for
+                      learning
+                    </li>
+                    <li>
+                      • Review findings carefully and validate before reporting
+                    </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2">Legal & Ethical Use</h3>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Legal & Ethical Use
+                  </h3>
                   <p className="text-muted-foreground">
-                    This tool is designed for educational purposes and authorized security testing only. Always obtain
-                    written permission before testing any system you do not own. Unauthorized access to computer systems
-                    is illegal.
+                    This tool is designed for educational purposes and
+                    authorized security testing only. Always obtain written
+                    permission before testing any system you do not own.
+                    Unauthorized access to computer systems is illegal.
                   </p>
                 </div>
               </CardContent>
@@ -302,5 +360,5 @@ export default function Home() {
         </Tabs>
       </main>
     </div>
-  )
+  );
 }
