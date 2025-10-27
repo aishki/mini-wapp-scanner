@@ -1,6 +1,12 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -13,56 +19,126 @@ import {
   PieChart,
   Pie,
   Cell,
-} from "recharts"
+} from "recharts";
 
-const mockData = {
-  vulnerabilityTrends: [
-    { name: "XSS", critical: 2, high: 3, medium: 5, low: 8 },
-    { name: "SQLi", critical: 1, high: 2, medium: 4, low: 6 },
-    { name: "CSRF", critical: 0, high: 1, medium: 2, low: 3 },
-    { name: "Auth", critical: 1, high: 1, medium: 2, low: 4 },
-  ],
-  severityDistribution: [
-    { name: "Critical", value: 4, fill: "#dc2626" },
-    { name: "High", value: 7, fill: "#ea580c" },
-    { name: "Medium", value: 13, fill: "#eab308" },
-    { name: "Low", value: 21, fill: "#0284c7" },
-  ],
+interface ScanDashboardProps {
+  report?: any;
 }
 
-export default function ScanDashboard() {
+export default function ScanDashboard({ report }: ScanDashboardProps) {
+  if (!report) {
+    return (
+      <Card className="border-border bg-card/50">
+        <CardContent className="pt-8 text-center">
+          <p className="text-muted-foreground">
+            No scan data yet. Start a scan to see statistics and charts here.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const vulnerabilityTrends = [
+    {
+      name: "XSS",
+      critical: report.vulnerabilities.filter(
+        (v: any) => v.type === "xss" && v.severity === "critical"
+      ).length,
+      high: report.vulnerabilities.filter(
+        (v: any) => v.type === "xss" && v.severity === "high"
+      ).length,
+      medium: report.vulnerabilities.filter(
+        (v: any) => v.type === "xss" && v.severity === "medium"
+      ).length,
+      low: report.vulnerabilities.filter(
+        (v: any) => v.type === "xss" && v.severity === "low"
+      ).length,
+    },
+    {
+      name: "SQLi",
+      critical: report.vulnerabilities.filter(
+        (v: any) => v.type === "sqli" && v.severity === "critical"
+      ).length,
+      high: report.vulnerabilities.filter(
+        (v: any) => v.type === "sqli" && v.severity === "high"
+      ).length,
+      medium: report.vulnerabilities.filter(
+        (v: any) => v.type === "sqli" && v.severity === "medium"
+      ).length,
+      low: report.vulnerabilities.filter(
+        (v: any) => v.type === "sqli" && v.severity === "low"
+      ).length,
+    },
+    {
+      name: "CSRF",
+      critical: report.vulnerabilities.filter(
+        (v: any) => v.type === "csrf" && v.severity === "critical"
+      ).length,
+      high: report.vulnerabilities.filter(
+        (v: any) => v.type === "csrf" && v.severity === "high"
+      ).length,
+      medium: report.vulnerabilities.filter(
+        (v: any) => v.type === "csrf" && v.severity === "medium"
+      ).length,
+      low: report.vulnerabilities.filter(
+        (v: any) => v.type === "csrf" && v.severity === "low"
+      ).length,
+    },
+  ];
+
+  const severityDistribution = [
+    { name: "Critical", value: report.summary.critical, fill: "#dc2626" },
+    { name: "High", value: report.summary.high, fill: "#ea580c" },
+    { name: "Medium", value: report.summary.medium, fill: "#eab308" },
+    { name: "Low", value: report.summary.low, fill: "#0284c7" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-border bg-card/50">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary">45</div>
-              <p className="text-sm text-muted-foreground mt-1">Total Vulnerabilities</p>
+              <div className="text-3xl font-bold text-primary">
+                {report.summary.total}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Total Vulnerabilities
+              </p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border bg-card/50">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-red-500">4</div>
-              <p className="text-sm text-muted-foreground mt-1">Critical Issues</p>
+              <div className="text-3xl font-bold text-red-500">
+                {report.summary.critical}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Critical Issues
+              </p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border bg-card/50">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500">7</div>
-              <p className="text-sm text-muted-foreground mt-1">High Severity</p>
+              <div className="text-3xl font-bold text-orange-500">
+                {report.summary.high}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                High Severity
+              </p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border bg-card/50">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-500">12</div>
-              <p className="text-sm text-muted-foreground mt-1">Scans Completed</p>
+              <div className="text-3xl font-bold text-blue-500">
+                {report.crawlStats.urlsFound}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">URLs Found</p>
             </div>
           </CardContent>
         </Card>
@@ -76,12 +152,18 @@ export default function ScanDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockData.vulnerabilityTrends}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <BarChart data={vulnerabilityTrends}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.1)"
+                />
                 <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
                 <YAxis stroke="rgba(255,255,255,0.5)" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.2)" }}
+                  contentStyle={{
+                    backgroundColor: "rgba(0,0,0,0.8)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                  }}
                 />
                 <Legend />
                 <Bar dataKey="critical" stackId="a" fill="#dc2626" />
@@ -102,7 +184,7 @@ export default function ScanDashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={mockData.severityDistribution}
+                  data={severityDistribution}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -111,7 +193,7 @@ export default function ScanDashboard() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {mockData.severityDistribution.map((entry, index) => (
+                  {severityDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
@@ -122,5 +204,5 @@ export default function ScanDashboard() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

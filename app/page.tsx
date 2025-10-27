@@ -165,8 +165,13 @@ export default function Home() {
                     className="bg-input border-border"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Example: https://juice-shop.herokuapp.com (OWASP Juice Shop
-                    for testing)
+                    Example: http://localhost:3000 (local app) or
+                    https://juice-shop.herokuapp.com (OWASP Juice Shop for
+                    testing)
+                  </p>
+                  <p className="text-xs text-yellow-600 bg-yellow-950/30 border border-yellow-900/50 px-2 py-1 rounded">
+                    ⚠️ Note: External URLs may have CORS restrictions. Best
+                    results with local apps or your own servers.
                   </p>
                 </div>
 
@@ -221,7 +226,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <ScanDashboard />
+            <ScanDashboard report={scanResults} />
           </TabsContent>
 
           {/* Results Tab */}
