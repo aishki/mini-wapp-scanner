@@ -55,6 +55,7 @@ export class WebCrawler {
 
     this.visited.add(url);
     this.results.urls.add(url);
+    console.log(`[v0] Crawling: ${url} (depth: ${depth})`);
 
     try {
       const controller = new AbortController();
@@ -70,18 +71,23 @@ export class WebCrawler {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        console.log(`[v0] Response not OK for ${url}: ${response.status}`);
+        return;
+      }
 
       const html = await response.text();
       const root = parse(html);
 
       // Extract links
       const links = root.querySelectorAll("a[href]");
+      console.log(`[v0] Found ${links.length} links on ${url}`);
       for (const link of links) {
         const href = link.getAttribute("href");
         if (href && !href.startsWith("#")) {
           const absoluteUrl = this.resolveUrl(url, href);
           if (this.isSameDomain(absoluteUrl)) {
+            console.log(`[v0] Queuing link: ${absoluteUrl}`);
             await this.crawlPage(absoluteUrl, depth + 1);
           }
         }
@@ -89,9 +95,13 @@ export class WebCrawler {
 
       // Extract forms
       const forms = root.querySelectorAll("form");
+      console.log(`[v0] Found ${forms.length} forms on ${url}`);
       for (const form of forms) {
         const formData = this.extractFormData(url, form);
         this.results.forms.push(formData);
+        console.log(
+          `[v0] Extracted form with ${formData.fields.length} fields`
+        );
 
         // Extract form parameters
         for (const field of formData.fields) {
@@ -106,6 +116,9 @@ export class WebCrawler {
 
       // Extract URL parameters
       const urlParams = new URL(url).searchParams;
+      console.log(
+        `[v0] Found ${Array.from(urlParams.keys()).length} URL parameters`
+      );
       for (const [key] of urlParams) {
         this.results.parameters.push({
           url,
@@ -115,7 +128,7 @@ export class WebCrawler {
         });
       }
     } catch (error) {
-      console.error(`Error crawling ${url}:`, error);
+      console.error(`[v0] Error crawling ${url}:`, error);
     }
   }
 

@@ -110,7 +110,13 @@ export async function POST(request: NextRequest) {
     const vulnerabilities: any[] = [];
 
     // Step 3: Test each parameter for vulnerabilities
+    console.log(
+      "[v0] Testing",
+      crawlResults.parameters.length,
+      "parameters for vulnerabilities"
+    );
     for (const param of crawlResults.parameters) {
+      console.log(`[v0] Testing parameter: ${param.name} on ${param.url}`);
       // Test XSS
       for (const payload of PAYLOADS.xss) {
         try {
@@ -128,6 +134,7 @@ export async function POST(request: NextRequest) {
             param.name
           );
           if (xssResult) {
+            console.log("[v0] XSS vulnerability found:", xssResult);
             vulnerabilities.push({
               id: `${Date.now()}-${Math.random()}`,
               ...xssResult,
@@ -155,6 +162,7 @@ export async function POST(request: NextRequest) {
             param.name
           );
           if (sqliResult) {
+            console.log("[v0] SQLi vulnerability found:", sqliResult);
             vulnerabilities.push({
               id: `${Date.now()}-${Math.random()}`,
               ...sqliResult,
