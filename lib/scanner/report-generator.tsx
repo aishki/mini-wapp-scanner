@@ -1,26 +1,26 @@
 export interface ScanReport {
-  id: string
-  targetUrl: string
-  timestamp: string
-  duration: number
-  vulnerabilities: any[]
+  id: string;
+  targetUrl: string;
+  timestamp: string;
+  duration: number;
+  vulnerabilities: any[];
   summary: {
-    total: number
-    critical: number
-    high: number
-    medium: number
-    low: number
-  }
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
   crawlStats: {
-    urlsFound: number
-    formsFound: number
-    parametersFound: number
-  }
+    urlsFound: number;
+    formsFound: number;
+    parametersFound: number;
+  };
 }
 
 export class ReportGenerator {
   generateJSON(report: ScanReport): string {
-    return JSON.stringify(report, null, 2)
+    return JSON.stringify(report, null, 2);
   }
 
   generateHTML(report: ScanReport): string {
@@ -30,7 +30,7 @@ export class ReportGenerator {
       medium: "#eab308",
       low: "#0284c7",
       info: "#06b6d4",
-    }
+    };
 
     const vulnerabilityRows = report.vulnerabilities
       .map(
@@ -38,17 +38,21 @@ export class ReportGenerator {
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 12px; text-align: left;">${vuln.type}</td>
         <td style="padding: 12px; text-align: center;">
-          <span style="background-color: ${severityColors[vuln.severity]}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+          <span style="background-color: ${
+            severityColors[vuln.severity]
+          }; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
             ${vuln.severity.toUpperCase()}
           </span>
         </td>
-        <td style="padding: 12px; text-align: left; word-break: break-all; font-size: 12px;">${vuln.url}</td>
+        <td style="padding: 12px; text-align: left; word-break: break-all; font-size: 12px;">${
+          vuln.url
+        }</td>
         <td style="padding: 12px; text-align: left;">${vuln.parameter}</td>
         <td style="padding: 12px; text-align: left;">${vuln.description}</td>
       </tr>
-    `,
+    `
       )
-      .join("")
+      .join("");
 
     const html = `
 <!DOCTYPE html>
@@ -280,8 +284,8 @@ export class ReportGenerator {
     </div>
 </body>
 </html>
-    `
+    `;
 
-    return html
+    return html;
   }
 }
