@@ -1,0 +1,26 @@
+{
+  "name": "mini-wapp-scanner-backend",
+  "version": "1.0.0",
+  "description": "Vulnerability scanner backend with Playwright",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "postinstall": "playwright install --with-deps chromium"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "node-html-parser": "^7.0.1",
+    "playwright": "^1.56.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/node": "^20.19.24",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

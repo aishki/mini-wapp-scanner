@@ -1,8 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { WebCrawler } from "@/lib/scanner/crawler";
-import { PAYLOADS } from "@/lib/scanner/payloads";
-import { VulnerabilityDetector } from "@/lib/scanner/detector";
-import { RequestInjector } from "@/lib/scanner/requester";
 
 const scanCache = new Map<string, { timestamp: number; result: any }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -99,131 +95,37 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now();
     console.log("[v0] Starting scan for:", targetUrl);
 
-    // Step 1: Crawl the target
-    const crawler = new WebCrawler(targetUrl, depth, timeout);
-    const crawlResults = await crawler.crawl();
-    console.log("[v0] Crawl complete. Found", crawlResults.urls.size, "URLs");
+    const BACKEND_URL =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+    const API_KEY = process.env.BACKEND_API_KEY;
 
-    // Step 2: Initialize scanner components
-    const detector = new VulnerabilityDetector();
-    const injector = new RequestInjector();
-    const vulnerabilities: any[] = [];
-
-    // Step 3: Test each parameter for vulnerabilities
-    console.log(
-      "[v0] Testing",
-      crawlResults.parameters.length,
-      "parameters for vulnerabilities"
-    );
-    for (const param of crawlResults.parameters) {
-      console.log(`[v0] Testing parameter: ${param.name} on ${param.url}`);
-      // Test XSS
-      for (const payload of PAYLOADS.xss) {
-        try {
-          const testParams = { [param.name]: payload };
-          const response = await injector.sendRequest(
-            param.url,
-            param.method,
-            testParams
-          );
-
-          const xssResult = detector.detectXSS(
-            response,
-            payload,
-            param.url,
-            param.name
-          );
-          if (xssResult) {
-            console.log("[v0] XSS vulnerability found:", xssResult);
-            vulnerabilities.push({
-              id: `${Date.now()}-${Math.random()}`,
-              ...xssResult,
-            });
-          }
-        } catch (e) {
-          console.error("[v0] XSS test error:", e);
-        }
-      }
-
-      // Test SQLi
-      for (const payload of PAYLOADS.sqli) {
-        try {
-          const testParams = { [param.name]: payload };
-          const response = await injector.sendRequest(
-            param.url,
-            param.method,
-            testParams
-          );
-
-          const sqliResult = detector.detectSQLi(
-            response,
-            payload,
-            param.url,
-            param.name
-          );
-          if (sqliResult) {
-            console.log("[v0] SQLi vulnerability found:", sqliResult);
-            vulnerabilities.push({
-              id: `${Date.now()}-${Math.random()}`,
-              ...sqliResult,
-            });
-          }
-        } catch (e) {
-          console.error("[v0] SQLi test error:", e);
-        }
-      }
-    }
-
-    // Step 4: Test forms for CSRF
-    for (const form of crawlResults.forms) {
-      try {
-        const csrfResult = detector.detectCSRFRisk(
-          JSON.stringify(form),
-          form.url
-        );
-        if (csrfResult) {
-          vulnerabilities.push({
-            id: `${Date.now()}-${Math.random()}`,
-            ...csrfResult,
-          });
-        }
-      } catch (e) {
-        console.error("[v0] CSRF test error:", e);
-      }
-    }
-
-    const duration = Math.round((Date.now() - startTime) / 1000);
-    console.log(
-      "[v0] Scan complete. Found",
-      vulnerabilities.length,
-      "vulnerabilities in",
-      duration,
-      "seconds"
-    );
-
-    // Generate report
-    const report = {
-      id: `scan-${Date.now()}`,
-      targetUrl,
-      timestamp: new Date().toISOString(),
-      duration,
-      vulnerabilities,
-      summary: {
-        total: vulnerabilities.length,
-        critical: vulnerabilities.filter((v) => v.severity === "critical")
-          .length,
-        high: vulnerabilities.filter((v) => v.severity === "high").length,
-        medium: vulnerabilities.filter((v) => v.severity === "medium").length,
-        low: vulnerabilities.filter((v) => v.severity === "low").length,
-      },
-      crawlStats: {
-        urlsFound: crawlResults.urls.size,
-        formsFound: crawlResults.forms.length,
-        parametersFound: crawlResults.parameters.length,
-      },
+    const backendHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
     };
 
-    scanCache.set(cacheKey, { timestamp: Date.now(), result: report });
+    if (API_KEY) {
+      backendHeaders["x-api-key"] = API_KEY;
+    }
+
+    console.log("[v0] Calling backend at:", BACKEND_URL);
+    const backendResponse = await fetch(`${BACKEND_URL}/scan`, {
+      method: "POST",
+      headers: backendHeaders,
+      body: JSON.stringify({ targetUrl, depth, timeout }),
+    });
+
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
+      console.error("[v0] Backend error:", backendResponse.status, errorText);
+      const errorResponse = NextResponse.json(
+        { error: `Backend error: ${errorText}` },
+        { status: backendResponse.status }
+      );
+      return addCORSHeaders(errorResponse);
+    }
+
+    const report = await backendResponse.json();
+    console.log("[v0] Scan complete, returning report");
 
     const successResponse = NextResponse.json(report);
     return addCORSHeaders(successResponse);
